@@ -1,0 +1,17 @@
+{
+  "name": "harvesttrust-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "db:migrate": "npm --prefix apps/api run db:migrate",
+    "db:seed": "npm --prefix apps/api run db:seed",
+    "ml:train": "cd ml && python3 train.py",
+    "ml:generate": "cd ml && python3 generate_demo_history.py"
+  }
+}

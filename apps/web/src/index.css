@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-green: #14532D;
+  --color-action-green: #16A34A;
+  --color-fresh-leaf: #22C55E;
+  --color-harvest-amber: #F59E0B;
+  --color-warm-cream: #FAF8F1;
+  --color-surface-white: #FFFFFF;
+  --color-text-dark: #17211B;
+  --color-text-muted: #66736B;
+  --color-border-custom: #DCE5DD;
+  --color-error-red: #DC2626;
+  --color-info-blue: #2563EB;
+}
+
+body {
+  background-color: var(--color-warm-cream);
+  color: var(--color-text-dark);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Page transitions and custom dashboard animations */
+.page-transition {
+  animation: fadeIn 0.22s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Microscale animation for quantity calculation preview */
+@keyframes balanceScale {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+.scale-animate {
+  animation: balanceScale 1.5s ease-in-out infinite;
+}
+
+/* Checkmark success pop animation */
+@keyframes checkPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.success-pop {
+  animation: checkPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Staggered card entrance list */
+.stagger-card {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

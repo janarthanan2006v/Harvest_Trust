@@ -1,0 +1,218 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String    // "OPERATOR", "SECRETARY", "ADMIN"
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  deliveries            Delivery[]              @relation("OperatorDeliveries")
+  paymentsRecorded      Payment[]               @relation("RecordedPayments")
+  statusChanges         DeliveryStatusHistory[] @relation("UserStatusChanges")
+  outcomesRecorded      AttentionOutcome[]      @relation("RecordedOutcomes")
+  auditLogs             AuditLog[]
+}
+
+model Member {
+  id          String     @id @default(uuid())
+  memberCode  String     @unique
+  fullName    String
+  phone       String?
+  village     String?
+  joinedOn    DateTime   @default(now())
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  deliveries  Delivery[]
+  payments    Payment[]
+}
+
+model ProduceType {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  name        String     @unique
+  defaultUnit String
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  rates       RateHistory[]
+  deliveries  Delivery[]
+}
+
+model CollectionPoint {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  name        String
+  location    String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  rates       RateHistory[]
+  deliveries  Delivery[]
+}
+
+model RateHistory {
+  id                String           @id @default(uuid())
+  produceTypeId     String
+  produceType       ProduceType      @relation(fields: [produceTypeId], references: [id])
+  collectionPointId String?
+  collectionPoint   CollectionPoint? @relation(fields: [collectionPointId], references: [id])
+  ratePerUnit       Float
+  unit              String
+  effectiveFrom     DateTime
+  effectiveTo       DateTime?
+  createdById       String
+  reason            String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  deliveries        Delivery[]
+
+  @@index([produceTypeId])
+  @@index([collectionPointId])
+  @@index([effectiveFrom, effectiveTo])
+}
+
+model Delivery {
+  id                String                 @id @default(uuid())
+  receiptNumber     String                 @unique
+  memberId          String
+  member            Member                 @relation(fields: [memberId], references: [id])
+  produceTypeId     String
+  produceType       ProduceType            @relation(fields: [produceTypeId], references: [id])
+  collectionPointId String
+  collectionPoint   CollectionPoint        @relation(fields: [collectionPointId], references: [id])
+  operatorId        String
+  operator          User                   @relation("OperatorDeliveries", fields: [operatorId], references: [id])
+  rateHistoryId     String?
+  rateHistory       RateHistory?           @relation(fields: [rateHistoryId], references: [id])
+  collectedAt       DateTime               @default(now())
+  quantity          Float
+  unit              String
+  ratePerUnit       Float
+  grossAmount       Float
+  netAmount         Float
+  qualityGrade      String?
+  moisturePercent   Float?
+  notes             String?
+  paymentStatus     String                 @default("UNPAID")      // "UNPAID", "PARTIALLY_PAID", "PAID"
+  attentionStatus   String                 @default("NONE")        // "NONE", "OPEN", "FOLLOW_UP", "RESOLVED"
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  statusHistory     DeliveryStatusHistory[]
+  allocations       PaymentAllocation[]
+  prediction        Prediction?
+  outcome           AttentionOutcome?
+
+  @@index([memberId])
+  @@index([produceTypeId])
+  @@index([collectionPointId])
+  @@index([collectedAt])
+  @@index([paymentStatus])
+  @@index([attentionStatus])
+}
+
+model DeliveryStatusHistory {
+  id           String    @id @default(uuid())
+  deliveryId   String
+  delivery     Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  statusType   String    // "ATTENTION", "PAYMENT"
+  oldValue     String?
+  newValue     String
+  note         String?
+  changedById  String
+  changedBy    User      @relation("UserStatusChanges", fields: [changedById], references: [id])
+  changedAt    DateTime  @default(now())
+
+  @@index([deliveryId])
+}
+
+model Payment {
+  id             String              @id @default(uuid())
+  paymentNumber  String              @unique
+  memberId       String
+  member         Member              @relation(fields: [memberId], references: [id])
+  amount         Float
+  paidAt         DateTime
+  method         String              // "CASH", "BANK_TRANSFER", "UPI", "CHEQUE", "OTHER"
+  referenceNumber String?
+  notes          String?
+  recordedById   String
+  recordedBy     User                @relation("RecordedPayments", fields: [recordedById], references: [id])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  allocations    PaymentAllocation[]
+
+  @@index([memberId])
+  @@index([paidAt])
+}
+
+model PaymentAllocation {
+  id              String   @id @default(uuid())
+  paymentId       String
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  deliveryId      String
+  delivery        Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  allocatedAmount Float
+
+  @@unique([paymentId, deliveryId])
+  @@index([paymentId])
+  @@index([deliveryId])
+}
+
+model Prediction {
+  id                  String    @id @default(uuid())
+  deliveryId          String?   @unique
+  delivery            Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  targetName          String    // e.g. "neededAttention"
+  predictedClass      String?   // "ATTENTION", "NORMAL", or null for low confidence
+  probability         Float
+  confidenceThreshold Float
+  modelVersion        String
+  featuresJson        String    // Input features snapshot
+  explanationJson     String?   // Text/JSON explanation
+  createdAt           DateTime  @default(now())
+}
+
+model AttentionOutcome {
+  id              String    @id @default(uuid())
+  deliveryId      String    @unique
+  delivery        Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  neededAttention Boolean
+  reasonCategory  String?
+  resolvedAt      DateTime?
+  recordedById    String
+  recordedBy      User      @relation("RecordedOutcomes", fields: [recordedById], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  entityType String
+  entityId   String
+  action     String
+  beforeJson String?
+  afterJson  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}

@@ -1,0 +1,30 @@
+{
+  "modelVersion": "v1.0.0",
+  "modelName": "HarvestTrust Attention Classifier",
+  "algorithm": "RandomForestClassifier",
+  "confidenceThreshold": 0.65,
+  "features": [
+    "quantity",
+    "ratePerUnit",
+    "grossAmount",
+    "moisturePercent",
+    "hourOfDay",
+    "dayOfWeek",
+    "qtyDiffFromAvg",
+    "rateDiffFromMedian",
+    "priorAttentionCount",
+    "priorDeliveriesCount",
+    "hasNotes",
+    "produceCode",
+    "collectionPointCode",
+    "qualityGrade"
+  ],
+  "metrics": {
+    "train_samples": 320,
+    "test_samples": 80,
+    "class_distribution": {
+      "0": 250,
+      "1": 150
+    }
+  }
+}
